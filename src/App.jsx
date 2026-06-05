@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const formatRs = (n) => {
@@ -31,11 +31,24 @@ export default function App() {
     return { base: a, rate: r, gst: g, total, cgst: g / 2, sgst: g / 2 };
   };
 
-  const calcGstOut = gstCalc(gstInput.amount, gstInput.rate);
-  if (calcGstOut) {
-    const already = saved.gst.find((g) => g.base === calcGstOut.base && g.rate === calcGstOut.rate);
-    if (!already) setSaved((s) => ({ ...s, gst: [...s.gst, calcGstOut] }));
-  }
+  const calcGstOut = useMemo(() => gstCalc(gstInput.amount, gstInput.rate), [gstInput.amount, gstInput.rate]);
+  const isValidGstInput = useMemo(() => calcGstOut !== null, [calcGstOut]);
+
+  const saveGst = useCallback(() => {
+    if (!calcGstOut) return;
+    setSaved((s) => {
+      const already = s.gst.find((g) => g.base === calcGstOut.base && g.rate === calcGstOut.rate);
+      if (already) return s;
+      return { ...s, gst: [...s.gst, calcGstOut] };
+    });
+  }, [calcGstOut]);
+
+  const handleGstAmountChange = useCallback((e) => {
+    const value = e.target.value.trim();
+    if (value === '' || (!isNaN(value) && Number(value) >= 0)) {
+      setGstInput((prev) => ({ ...prev, amount: value }));
+    }
+  }, []);
 
   const taxIncome = parseFloat(taxInput.income) || 0;
   const taxDeductions = parseFloat(taxInput.deductions) || 0;
@@ -125,7 +138,10 @@ export default function App() {
             <div className="input-row">
               <div>
                 <label className="muted" style={{ fontSize: 12 }}>Amount (₹)</label>
-                <input className="input" type="number" value={gstInput.amount} onChange={(e) => setGstInput((s) => ({ ...s, amount: e.target.value }))} />
+                <input className="input" type="number" value={gstInput.amount} onChange={handleGstAmountChange} />
+                {gstInput.amount !== '' && !isValidGstInput && (
+                  <div style={{ color: '#c0392b', fontSize: 12, marginTop: 4 }}>Enter a valid positive number.</div>
+                )}
               </div>
               <div>
                 <label className="muted" style={{ fontSize: 12 }}>GST rate (%)</label>
@@ -164,6 +180,7 @@ export default function App() {
                   </div>
                 </div>
                 <div className="actions">
+                  <button className="btn secondary" onClick={saveGst}>Save</button>
                   <button className="btn secondary" onClick={downloadGst}>Download JSON</button>
                   <span className="badge">{saved.gst.length} saved</span>
                 </div>
