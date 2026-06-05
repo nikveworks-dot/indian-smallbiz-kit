@@ -7,7 +7,7 @@ const formatRs = (n) => {
 };
 
 const SummaryCard = ({ label, value, sub }) => (
-  <div className="card" style={{ minHeight: 96 }}>
+  <div className="box">
     <div className="label">{label}</div>
     <div className="value">{value}</div>
     {sub && <div className="delta">{sub}</div>}
@@ -144,7 +144,7 @@ export default function App() {
                 <label className="label" htmlFor="gst-amount">Amount (₹)</label>
                 <input id="gst-amount" className="input" type="number" value={gstInput.amount} onChange={handleGstAmountChange} />
                 {gstInput.amount !== '' && !isValidGstInput && (
-                  <div style={{ color: '#b91c1c', fontSize: 12, marginTop: 4 }}>Enter a valid positive number.</div>
+                  <div className="field-error">Enter a valid positive number.</div>
                 )}
               </div>
               <div>
@@ -166,21 +166,21 @@ export default function App() {
                 <div className="grid-3">
                   <div>
                     <div className="label">Base amount</div>
-                    <div className="heading">{formatRs(calcGstOut.base)}</div>
-                    <div className="label">CGST {calcGstOut.rate / 2}%</div>
+                    <div className="heading" style={{ fontSize: 18 }}>{formatRs(calcGstOut.base)}</div>
+                    <div className="label" style={{ marginTop: 6 }}>CGST {calcGstOut.rate / 2}%</div>
                     <div className="heading">{formatRs(calcGstOut.cgst)}</div>
-                    <div className="label">SGST {calcGstOut.rate / 2}%</div>
+                    <div className="label" style={{ marginTop: 6 }}>SGST {calcGstOut.rate / 2}%</div>
                     <div className="heading">{formatRs(calcGstOut.sgst)}</div>
                   </div>
                   <div>
                     <div className="label">Total GST</div>
-                    <div className="heading">{formatRs(calcGstOut.gst)}</div>
-                    <div className="label">Rate</div>
+                    <div className="heading" style={{ fontSize: 18 }}>{formatRs(calcGstOut.gst)}</div>
+                    <div className="label" style={{ marginTop: 6 }}>Rate</div>
                     <div className="heading">{calcGstOut.rate}%</div>
                   </div>
                   <div>
                     <div className="label">Total payable</div>
-                    <div className="heading">{formatRs(calcGstOut.total)}</div>
+                    <div className="heading" style={{ fontSize: 20 }}>{formatRs(calcGstOut.total)}</div>
                   </div>
                 </div>
                 <div className="btn-wrap">
@@ -340,13 +340,13 @@ export default function App() {
             </div>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={trend}>
-                <CartesianGrid strokeDasharray="4 4" stroke="#efefe9" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b717d' }} />
-                <YAxis tick={{ fontSize: 11, fill: '#6b717d' }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(val) => formatRs(val)} />
-                <Line type="monotone" dataKey="revenue" stroke="#0f562e" strokeWidth={2} name="Revenue" />
-                <Line type="monotone" dataKey="cogs" stroke="#c27a3b" strokeWidth={2} name="COGS" />
-                <Line type="monotone" dataKey="opex" stroke="#3b6ec2" strokeWidth={2} name="OpEx" />
+                <CartesianGrid strokeDasharray="4 4" stroke="#eef0f3" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                <Tooltip formatter={(val) => formatRs(val)} contentStyle={{ borderRadius: 10, border: '1px solid #eef0f3', fontSize: 13, fontFamily: 'inherit' }} />
+                <Line type="monotone" dataKey="revenue" stroke="#0d9488" strokeWidth={2.5} name="Revenue" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="cogs" stroke="#c27a3b" strokeWidth={2.5} name="COGS" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="opex" stroke="#3b6ec2" strokeWidth={2.5} name="OpEx" dot={{ r: 3 }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
