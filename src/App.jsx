@@ -19,6 +19,7 @@ export default function App() {
   const [gstInput, setGstInput] = useState({ amount: '', rate: 18 });
   const [taxInput, setTaxInput] = useState({ income: '', regime: 'new', age: '<60', deductions: 0 });
   const [businessMoney, setBusinessMoney] = useState({ revenue: 450000, cogs: 180000, opex: 95000, gstCollected: 40500 });
+  const [invoice, setInvoice] = useState({ seller: '', buyer: '', items: '', date: new Date().toISOString().slice(0, 10) });
   const [saved, setSaved] = useState({ gst: [], tax: [], inv: [] });
 
   const gstCalc = (amount, rate) => {
@@ -82,8 +83,242 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
+  const invoices = invoice.items.split('\n').filter(Boolean).map((line) => {
+    const parts = line.includes('|') ? line.split('|') : [line];
+    return { item: (parts[0] || '').trim(), amt: parseFloat((parts[1] || '').replace(/[^0-9.]/g, '')) || 0 };
+  });
+  const invoiceTotal = invoices.reduce((sum, x) => sum + x.amt, 0);
+
   return (
     <div className="wrap">
       <div className="topbar">
         <div className="logo">BizKit India • Small Business Toolkit</div>
-        <div className="pill">Ind
+        <div className="pill">Experimental Indian micro-SaaS build</div>
+      </div>
+
+      <div className="help">
+        <div className="help-item">
+          <h4><span className="marker">R</span>Research</h4>
+          <p>Verified workflow after focused proxy-based search, mapping demand signals for Indian small-business tooling.</p>
+        </div>
+        <div className="help-item">
+          <h4><span className="marker">G</span>Goal</h4>
+          <p>Ship one coherent MVP workflow instead of disconnected standalone snippets.</p>
+        </div>
+        <div className="help-item">
+          <h4><span className="marker">M</span>Monetization</h4>
+          <p>Free basic tools plus paid Pro: unlimited exports, history, AI summaries from PDFs, team seats.</p>
+        </div>
+      </div>
+
+      <div className="tabs">
+        <div className={`tab ${tab === 'gst' ? 'active' : ''}`} onClick={() => setTab('gst')}>GST calculator</div>
+        <div className={`tab ${tab === 'invoice' ? 'active' : ''}`} onClick={() => setTab('invoice')}>Invoice generator</div>
+        <div className={`tab ${tab === 'tax' ? 'active' : ''}`} onClick={() => setTab('tax')}>Income tax</div>
+        <div className={`tab ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}>Profit dashboard</div>
+      </div>
+
+      {tab === 'gst' && (
+        <div className="section">
+          <h2>GST calculator</h2>
+          <div className="card">
+            <div className="input-row">
+              <div>
+                <label className="muted" style={{ fontSize: 12 }}>Amount (₹)</label>
+                <input className="input" type="number" value={gstInput.amount} onChange={(e) => setGstInput((s) => ({ ...s, amount: e.target.value }))} />
+              </div>
+              <div>
+                <label className="muted" style={{ fontSize: 12 }}>GST rate (%)</label>
+                <select value={gstInput.rate} onChange={(e) => setGstInput((s) => ({ ...s, rate: Number(e.target.value) }))}>
+                  <option value={0}>0</option>
+                  <option value={5}>5</option>
+                  <option value={12}>12</option>
+                  <option value={18}>18</option>
+                  <option value={28}>28</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <button className="btn secondary" onClick={() => setGstInput({ amount: '', rate: 0 })}>Reset</button>
+              </div>
+            </div>
+            {calcGstOut ? (
+              <div className="result">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                  <div>
+                    <div className="muted">Base amount</div>
+                    <div style={{ fontSize: 18, fontWeight: 700 }}>{formatRs(calcGstOut.base)}</div>
+                    <div className="muted">CGST {calcGstOut.rate / 2}%</div>
+                    <div style={{ fontWeight: 600 }}>{formatRs(calcGstOut.cgst)}</div>
+                    <div className="muted">SGST {calcGstOut.rate / 2}%</div>
+                    <div style={{ fontWeight: 600 }}>{formatRs(calcGstOut.sgst)}</div>
+                  </div>
+                  <div>
+                    <div className="muted">Total GST</div>
+                    <div style={{ fontSize: 18, fontWeight: 700 }}>{formatRs(calcGstOut.gst)}</div>
+                    <div className="muted">Rate</div>
+                    <div style={{ fontWeight: 600 }}>{calcGstOut.rate}%</div>
+                  </div>
+                  <div>
+                    <div className="muted">Total payable</div>
+                    <div style={{ fontSize: 20, fontWeight: 700 }}>{formatRs(calcGstOut.total)}</div>
+                  </div>
+                </div>
+                <div className="actions">
+                  <button className="btn secondary" onClick={downloadGst}>Download JSON</button>
+                  <span className="badge">{saved.gst.length} saved</span>
+                </div>
+              </div>
+            ) : (
+              <div className="result">Enter an amount to calculate GST breakup.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'tax' && (
+        <div className="section">
+          <h2>Income Tax Estimator (India FY 2025-26)</h2>
+          <div className="card">
+            <div className="input-row">
+              <div>
+                <label className="muted" style={{ fontSize: 12 }}>Annual income (₹)</label>
+                <input className="input" type="number" value={taxInput.income} onChange={(e) => setTaxInput((s) => ({ ...s, income: e.target.value }))} />
+              </div>
+              <div>
+                <label className="muted" style={{ fontSize: 12 }}>Regime</label>
+                <select value={taxInput.regime} onChange={(e) => setTaxInput((s) => ({ ...s, regime: e.target.value }))}>
+                  <option value="new">New Regime</option>
+                  <option value="old">Old Regime</option>
+                </select>
+              </div>
+              <div>
+                <label className="muted" style={{ fontSize: 12 }}>Age</label>
+                <select value={taxInput.age} onChange={(e) => setTaxInput((s) => ({ ...s, age: e.target.value }))}>
+                  <option value="<60">Below 60</option>
+                  <option value="60-80">60 - 80</option>
+                  <option value=">80">Above 80</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label className="muted" style={{ fontSize: 12 }}>Other deductions / sec 80C etc (₹)</label>
+              <input className="input" type="number" value={taxInput.deductions} onChange={(e) => setTaxInput((s) => ({ ...s, deductions: e.target.value }))} />
+            </div>
+            <div className="result">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                <div>
+                  <div className="muted">Taxable income</div>
+                  <div style={{ fontSize: 20, fontWeight: 700 }}>{formatRs(taxInput.regime === 'old' ? Math.max(taxIncome - taxDeductions, 0) : taxIncome)}</div>
+                </div>
+                <div>
+                  <div className="muted">Income tax + cess</div>
+                  <div style={{ fontSize: 20, fontWeight: 700 }}>{formatRs(totalTax)}</div>
+                </div>
+                <div>
+                  <div className="muted">Effective rate</div>
+                  <div style={{ fontSize: 20, fontWeight: 700 }}>{taxIncome > 0 ? `${((totalTax / taxIncome) * 100).toFixed(2)}%` : '—'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === 'invoice' && (
+        <div className="section">
+          <h2>Simple invoice generator</h2>
+          <div className="card">
+            <div className="input-row">
+              <div>
+                <label className="muted" style={{ fontSize: 12 }}>Seller / your name</label>
+                <input className="input" value={invoice.seller} onChange={(e) => setInvoice((s) => ({ ...s, seller: e.target.value }))} />
+              </div>
+              <div>
+                <label className="muted" style={{ fontSize: 12 }}>Client / buyer name</label>
+                <input className="input" value={invoice.buyer} onChange={(e) => setInvoice((s) => ({ ...s, buyer: e.target.value }))} />
+              </div>
+              <div>
+                <label className="muted" style={{ fontSize: 12 }}>Invoice date</label>
+                <input className="input" type="date" value={invoice.date} onChange={(e) => setInvoice((s) => ({ ...s, date: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <label className="muted" style={{ fontSize: 12 }}>Line items — one per line as "Description | Amount"</label>
+              <textarea
+                value={invoice.items}
+                rows={5}
+                style={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace' }}
+                placeholder={'Website maintenance | 15000\nDesign | 8000\nHosting | 2000'}
+                onChange={(e) => setInvoice((s) => ({ ...s, items: e.target.value }))}
+              />
+            </div>
+            {invoice.items.trim().length > 0 ? (
+              <div className="result">
+                <div style={{ fontWeight: 600, marginBottom: 8 }}>{invoice.seller || 'Seller'} → {invoice.buyer || 'Client'}</div>
+                <div style={{ fontSize: 12, color: '#6b717d', marginBottom: 10 }}>Invoice date: {invoice.date}</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', fontSize: 12, color: '#6b717d' }}>
+                      <th style={{ padding: '6px 4px', borderBottom: '1px solid #e6e6e6' }}>Item</th>
+                      <th style={{ padding: '6px 4px', borderBottom: '1px solid #e6e6e6' }}> Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoices.map((line, idx) => (
+                      <tr key={idx}>
+                        <td style={{ padding: '8px 4px', borderBottom: '1px solid #f2f2f2' }}>{line.item}</td>
+                        <td style={{ padding: '8px 4px', borderBottom: '1px solid #f2f2f2' }}>{formatRs(line.amt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12, fontWeight: 700 }}>Total: {formatRs(invoiceTotal)}</div>
+              </div>
+            ) : (
+              <div className="result">Add line items to generate the invoice snapshot.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'dashboard' && (
+        <div className="section">
+          <h2>Profit dashboard</h2>
+          <div className="kpi">
+            <SummaryCard label="Revenue" value={formatRs(businessMoney.revenue)} sub="This run" />
+            <SummaryCard label="Net profit" value={formatRs(netProfit)} sub={`${margin.toFixed(1)}% margin`} />
+            <SummaryCard label="GST liability" value={formatRs(businessMoney.gstCollected)} sub="Outflow" />
+            <SummaryCard label="Est. EBITDA" value={formatRs(ebitda)} sub="COGS/opex mix based" />
+          </div>
+          <div className="card">
+            <div className="input-row">
+              <div>
+                <label className="muted" style={{ fontSize: 12 }}>Revenue (₹)</label>
+                <input className="input" type="number" value={businessMoney.revenue} onChange={(e) => setBusinessMoney((s) => ({ ...s, revenue: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="muted" style={{ fontSize: 12 }}>COGS / goods (₹)</label>
+                <input className="input" type="number" value={businessMoney.cogs} onChange={(e) => setBusinessMoney((s) => ({ ...s, cogs: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="muted" style={{ fontSize: 12 }}>OpEx (₹)</label>
+                <input className="input" type="number" value={businessMoney.opex} onChange={(e) => setBusinessMoney((s) => ({ ...s, opex: Number(e.target.value) }))} />
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={trend}>
+                <CartesianGrid strokeDasharray="4 4" stroke="#efefe9" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b717d' }} />
+                <YAxis tick={{ fontSize: 11, fill: '#6b717d' }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                <Tooltip formatter={(val) => formatRs(val)} />
+                <Line type="monotone" dataKey="revenue" stroke="#0f562e" strokeWidth={2} name="Revenue" />
+                <Line type="monotone" dataKey="cogs" stroke="#c27a3b" strokeWidth={2} name="COGS" />
+                <Line type="monotone" dataKey="opex" stroke="#3b6ec2" strokeWidth={2} name="OpEx" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
